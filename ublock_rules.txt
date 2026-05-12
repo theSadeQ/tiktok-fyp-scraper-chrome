@@ -1,0 +1,31 @@
+! TikTok FYP Scraper - uBlock Origin Custom Filter Rules
+! Import these in uBlock Origin > My Filters
+! Blocks all video/audio media requests on TikTok to save bandwidth
+
+! === Block Video Playback Files ===
+||*.tiktok.com/*/play/mp4*^
+||*.tiktokcdn.com/video/*^
+||*.tiktokv.com/api/v3/aweme/video*^
+||*.tiktok.com/aweme/v1/aweme/video/play*^
+
+! === Block CDN Media Streams ===
+||v16-webapp.tiktok.com/*^
+||v19-webapp.tiktok.com/*^
+||v21-webapp.tiktok.com/*^
+||*.tiktokcdn.com/*.mp4*^
+||*.tiktokcdn.com/*.m3u8*^
+||*.tiktokcdn.com/*.ts*^
+
+! === Block Audio Tracks ===
+||*.tiktokcdn.com/*.m4a*^
+||*.tiktokcdn.com/*.aac*^
+
+! === Block Thumbnails (optional - uncomment to save more data) ===
+! ||*.tiktokcdn.com/*thumb*^
+! ||*.tiktokcdn.com/*cover*^
+! ||*.tiktokcdn.com/*origin*^
+
+! === Generic Media Type Block ===
+*.mp4$media,domain=tiktok.com
+*.m3u8$media,domain=tiktok.com
+*.ts$media,domain=tiktok.com
