@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir wheels
           pip download -r requirements.txt -d wheels `
+            --only-binary=:all: `
             --prefer-binary `
             --platform win_amd64 `
             --python-version 311 `
