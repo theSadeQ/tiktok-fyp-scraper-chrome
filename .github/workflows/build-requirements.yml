@@ -18,12 +18,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.9'
 
-      - name: Download all packages as Windows wheels
+      - name: Download all packages as Windows wheels (cp39)
         shell: pwsh
         run: |
           mkdir wheels
@@ -31,9 +31,9 @@ jobs:
             --only-binary=:all: `
             --prefer-binary `
             --platform win_amd64 `
-            --python-version 311 `
+            --python-version 39 `
             --implementation cp `
-            --abi cp311
+            --abi cp39
 
       - name: Verify all wheels are present
         shell: pwsh
@@ -75,11 +75,11 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           body: |
-            ## Offline Installation Bundle (Windows x64 — Python 3.11)
+            ## Offline Installation Bundle (Windows x64 — Python 3.9)
 
             | File | Description |
             |------|-------------|
-            | `requirements_wheels_windows.zip` | All Python packages as Windows `.whl` files |
+            | `requirements_wheels_windows.zip` | All Python packages as Windows `.whl` files (cp39) |
             | `chromium_bin_windows.zip` | Chromium browser binary for Playwright (Windows) |
 
             ### Install Instructions
@@ -93,7 +93,7 @@ jobs:
             ::    %USERPROFILE%\AppData\Local\ms-playwright\
             ```
 
-            > Requires **Python 3.11** on **Windows x64**
+            > Requires **Python 3.9** on **Windows x64**
           files: |
             requirements_wheels_windows.zip
             chromium_bin_windows.zip
