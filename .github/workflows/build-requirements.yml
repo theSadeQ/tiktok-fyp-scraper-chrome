@@ -18,17 +18,31 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Download all packages as Windows wheels
+        shell: pwsh
         run: |
           mkdir wheels
-          pip download -r requirements.txt -d wheels --prefer-binary --platform win_amd64 --python-version 3.11 --only-binary=:all:
+          # Download pure-python and binary wheels for Windows cp311
+          pip download -r requirements.txt -d wheels `
+            --prefer-binary `
+            --platform win_amd64 `
+            --python-version cp311 `
+            --implementation cp `
+            --abi cp311
+
+      - name: Verify all wheels are present
+        shell: pwsh
+        run: |
+          Write-Host "Downloaded wheels:"
+          Get-ChildItem wheels\ | ForEach-Object { Write-Host $_.Name }
 
       - name: Install Playwright and download Chromium binary
+        shell: pwsh
         run: |
           pip install playwright
           playwright install chromium
@@ -42,9 +56,10 @@ jobs:
         run: |
           $chromiumPath = "$env:USERPROFILE\AppData\Local\ms-playwright"
           if (Test-Path $chromiumPath) {
-            $chromiumDirs = Get-ChildItem -Path $chromiumPath -Directory -Filter "chromium-*"
-            if ($chromiumDirs.Count -gt 0) {
+            $dirs = Get-ChildItem -Path $chromiumPath -Directory -Filter "chromium-*"
+            if ($dirs.Count -gt 0) {
               Compress-Archive -Path "$chromiumPath\chromium-*" -DestinationPath chromium_bin_windows.zip
+              Write-Host "Chromium zipped successfully"
             } else {
               Write-Host "No chromium-* folder found"
               New-Item -ItemType File -Path chromium_bin_windows.zip
@@ -60,9 +75,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           body: |
-            ## Offline Installation Bundle (Windows x64)
-
-            Download the assets below to install on **Windows** without internet access:
+            ## Offline Installation Bundle (Windows x64 — Python 3.11)
 
             | File | Description |
             |------|-------------|
@@ -71,7 +84,7 @@ jobs:
 
             ### Install Instructions
             ```cmd
-            :: 1. Extract requirements_wheels_windows.zip -> wheels folder
+            :: 1. Extract requirements_wheels_windows.zip -> wheels\ folder
 
             :: 2. Install packages offline
             pip install --no-index --find-links=wheels -r requirements.txt
@@ -80,7 +93,7 @@ jobs:
             ::    %USERPROFILE%\AppData\Local\ms-playwright\
             ```
 
-            > Requires Python 3.11 on Windows x64
+            > Requires **Python 3.11** on **Windows x64**
           files: |
             requirements_wheels_windows.zip
             chromium_bin_windows.zip
