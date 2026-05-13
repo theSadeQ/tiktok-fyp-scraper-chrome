@@ -27,11 +27,10 @@ jobs:
         shell: pwsh
         run: |
           mkdir wheels
-          # Download pure-python and binary wheels for Windows cp311
           pip download -r requirements.txt -d wheels `
             --prefer-binary `
             --platform win_amd64 `
-            --python-version cp311 `
+            --python-version 311 `
             --implementation cp `
             --abi cp311
 
