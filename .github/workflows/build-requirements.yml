@@ -1,0 +1,72 @@
+name: Build Requirements Bundle
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download all packages as wheels
+        run: |
+          mkdir -p wheels
+          pip download -r requirements.txt -d wheels --prefer-binary
+
+      - name: Install Playwright and download Chromium browser binary
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+          # Copy Chromium binary into bundle
+          mkdir -p chromium_bin
+          cp -r ~/.cache/ms-playwright/chromium-* chromium_bin/ || true
+
+      - name: Zip wheels bundle
+        run: zip -r requirements_wheels.zip wheels/
+
+      - name: Zip Chromium binary
+        run: zip -r chromium_bin.zip chromium_bin/ || echo "No chromium binary found to zip"
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          body: |
+            ## Offline Installation Bundle
+
+            Download the assets below to install without internet access:
+
+            | File | Description |
+            |------|-------------|
+            | `requirements_wheels.zip` | All Python packages as `.whl` files |
+            | `chromium_bin.zip` | Chromium browser binary for Playwright |
+
+            ### Install Instructions
+            ```bash
+            # 1. Extract wheels
+            unzip requirements_wheels.zip
+
+            # 2. Install from local wheels (no internet needed)
+            pip install --no-index --find-links=wheels -r requirements.txt
+
+            # 3. Extract Chromium binary
+            unzip chromium_bin.zip -d ~/.cache/ms-playwright/
+            ```
+          files: |
+            requirements_wheels.zip
+            chromium_bin.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
