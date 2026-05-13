@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-bundle:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 15
 
     steps:
@@ -23,24 +23,36 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Download all packages as wheels
+      - name: Download all packages as Windows wheels
         run: |
-          mkdir -p wheels
-          pip download -r requirements.txt -d wheels --prefer-binary
+          mkdir wheels
+          pip download -r requirements.txt -d wheels --prefer-binary --platform win_amd64 --python-version 3.11 --only-binary=:all:
 
-      - name: Install Playwright and download Chromium browser binary
+      - name: Install Playwright and download Chromium binary
         run: |
           pip install playwright
-          playwright install chromium --with-deps
-          # Copy Chromium binary into bundle
-          mkdir -p chromium_bin
-          cp -r ~/.cache/ms-playwright/chromium-* chromium_bin/ || true
+          playwright install chromium
 
       - name: Zip wheels bundle
-        run: zip -r requirements_wheels.zip wheels/
+        shell: pwsh
+        run: Compress-Archive -Path wheels -DestinationPath requirements_wheels_windows.zip
 
       - name: Zip Chromium binary
-        run: zip -r chromium_bin.zip chromium_bin/ || echo "No chromium binary found to zip"
+        shell: pwsh
+        run: |
+          $chromiumPath = "$env:USERPROFILE\AppData\Local\ms-playwright"
+          if (Test-Path $chromiumPath) {
+            $chromiumDirs = Get-ChildItem -Path $chromiumPath -Directory -Filter "chromium-*"
+            if ($chromiumDirs.Count -gt 0) {
+              Compress-Archive -Path "$chromiumPath\chromium-*" -DestinationPath chromium_bin_windows.zip
+            } else {
+              Write-Host "No chromium-* folder found"
+              New-Item -ItemType File -Path chromium_bin_windows.zip
+            }
+          } else {
+            Write-Host "ms-playwright path not found"
+            New-Item -ItemType File -Path chromium_bin_windows.zip
+          }
 
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v2
@@ -48,28 +60,29 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           body: |
-            ## Offline Installation Bundle
+            ## Offline Installation Bundle (Windows x64)
 
-            Download the assets below to install without internet access:
+            Download the assets below to install on **Windows** without internet access:
 
             | File | Description |
             |------|-------------|
-            | `requirements_wheels.zip` | All Python packages as `.whl` files |
-            | `chromium_bin.zip` | Chromium browser binary for Playwright |
+            | `requirements_wheels_windows.zip` | All Python packages as Windows `.whl` files |
+            | `chromium_bin_windows.zip` | Chromium browser binary for Playwright (Windows) |
 
             ### Install Instructions
-            ```bash
-            # 1. Extract wheels
-            unzip requirements_wheels.zip
+            ```cmd
+            :: 1. Extract requirements_wheels_windows.zip -> wheels folder
 
-            # 2. Install from local wheels (no internet needed)
+            :: 2. Install packages offline
             pip install --no-index --find-links=wheels -r requirements.txt
 
-            # 3. Extract Chromium binary
-            unzip chromium_bin.zip -d ~/.cache/ms-playwright/
+            :: 3. Extract chromium_bin_windows.zip to:
+            ::    %USERPROFILE%\AppData\Local\ms-playwright\
             ```
+
+            > Requires Python 3.11 on Windows x64
           files: |
-            requirements_wheels.zip
-            chromium_bin.zip
+            requirements_wheels_windows.zip
+            chromium_bin_windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
